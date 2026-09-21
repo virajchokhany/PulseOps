@@ -23,6 +23,13 @@ param(
     # Leave unset to deploy with the deterministic offline RCA provider.
     [securestring] $LlmApiKey,
 
+    # For Azure OpenAI use https://<resource>.openai.azure.com/openai/v1 and the
+    # deployment name, which is not necessarily the model name.
+    [string] $LlmBaseUrl = 'https://api.openai.com/v1',
+    [string] $LlmModel = 'gpt-4.1-mini',
+    [ValidateSet('bearer', 'api-key')]
+    [string] $LlmAuthHeader = 'bearer',
+
     # Strongly recommended: restricts the ShopFlow demo endpoints, including the
     # failure-injection endpoint, to a single public IP.
     [string] $AllowedClientIp = '',
@@ -102,6 +109,9 @@ $deployParams = @(
 )
 if ($LlmApiKey) {
     $deployParams += "llmApiKey=$(Convert-Secret $LlmApiKey)"
+    $deployParams += "llmBaseUrl=$LlmBaseUrl"
+    $deployParams += "llmModel=$LlmModel"
+    $deployParams += "llmAuthHeader=$LlmAuthHeader"
 }
 
 $main = az deployment group create `
