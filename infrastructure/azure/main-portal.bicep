@@ -47,6 +47,9 @@ param allowedClientIp string = ''
 @description('PostgreSQL major version. Lower this if the region reports the version as unavailable.')
 param postgresVersion string = '16'
 
+@description('Region for the database only. Some subscriptions are allowed to provision PostgreSQL in a different set of regions than Container Apps.')
+param postgresLocation string = location
+
 @description('Compute size. Burstable is cheapest but is not offered in every region.')
 param postgresSkuName string = 'Standard_B1ms'
 
@@ -89,7 +92,7 @@ resource env 'Microsoft.App/managedEnvironments@2024-03-01' = {
 
 resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: pgName
-  location: location
+  location: postgresLocation
   sku: {
     name: postgresSkuName
     tier: postgresSkuTier

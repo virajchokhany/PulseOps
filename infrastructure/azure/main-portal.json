@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.47.16.16243",
-      "templateHash": "5136410283881556855"
+      "templateHash": "2226284993845171122"
     }
   },
   "parameters": {
@@ -91,6 +91,13 @@
         "description": "PostgreSQL major version. Lower this if the region reports the version as unavailable."
       }
     },
+    "postgresLocation": {
+      "type": "string",
+      "defaultValue": "[parameters('location')]",
+      "metadata": {
+        "description": "Region for the database only. Some subscriptions are allowed to provision PostgreSQL in a different set of regions than Container Apps."
+      }
+    },
     "postgresSkuName": {
       "type": "string",
       "defaultValue": "Standard_B1ms",
@@ -160,7 +167,7 @@
       "type": "Microsoft.DBforPostgreSQL/flexibleServers",
       "apiVersion": "2024-08-01",
       "name": "[variables('pgName')]",
-      "location": "[parameters('location')]",
+      "location": "[parameters('postgresLocation')]",
       "sku": {
         "name": "[parameters('postgresSkuName')]",
         "tier": "[parameters('postgresSkuTier')]"
