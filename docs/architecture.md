@@ -366,9 +366,11 @@ Being precise about what the system does *not* do is more convincing than overse
 **Demo fidelity**
 - Deployments, pull requests and runbooks are **seeded**. Commit SHAs are synthetic, and source
   is read from the working tree, not from Git history at the relevant commit.
-- **Seed data goes stale.** The deployment evidence lookback is 24 hours, so after a day the
-  seeded deployment falls outside it and the AI silently stops citing deployments, PRs and code.
-  This needs seeding relative to `now()` at startup.
+- **The demo decays as the database ages.** Seed timestamps are relative to *migration* time, not
+  demo time. The deployment evidence lookback is 24 hours, so on a database older than a day the
+  seeded deployment falls outside it and the AI silently stops citing deployments, PRs and code —
+  with only the `missingEvidence` list hinting why. A fresh deployment is unaffected; on a
+  long-lived one run `scripts/refresh-demo-data.ps1` first.
 
 **Production readiness**
 - No authentication or authorisation anywhere.
