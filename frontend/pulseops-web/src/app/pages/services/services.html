@@ -1,0 +1,46 @@
+<header class="page-head">
+  <h1>Services</h1>
+  <p class="muted">The dependency graph the investigation walks when attributing a failure.</p>
+</header>
+
+@if (error()) {
+  <div class="notice notice--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else {
+  <div class="grid">
+    @for (service of services(); track service.name) {
+      <article class="card service">
+        <header>
+          <h2>{{ service.displayName || service.name }}</h2>
+          <span class="mono small dim">{{ service.name }}</span>
+        </header>
+        <p class="muted">{{ service.description }}</p>
+        <dl>
+          <div><dt>Owner</dt><dd>{{ service.owner }}</dd></div>
+          <div><dt>Tier</dt><dd>{{ service.tier }}</dd></div>
+          <div><dt>Version</dt><dd class="mono">{{ service.version }}</dd></div>
+          <div><dt>Environment</dt><dd>{{ service.environment }}</dd></div>
+        </dl>
+        <div class="deps">
+          <span class="deps__label">Depends on</span>
+          @if (service.dependsOn.length) {
+            <span class="mono small">{{ service.dependsOn.join(', ') }}</span>
+          } @else {
+            <span class="muted small">nothing</span>
+          }
+        </div>
+        <div class="deps">
+          <span class="deps__label">Depended on by</span>
+          @if (service.dependedOnBy.length) {
+            <span class="mono small">{{ service.dependedOnBy.join(', ') }}</span>
+          } @else {
+            <span class="muted small">nothing</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}

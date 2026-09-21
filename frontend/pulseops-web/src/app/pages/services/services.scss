@@ -1,0 +1,23 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.service header { margin-bottom: 0.5rem; }
+.service h2 { margin: 0 0 0.15rem; }
+.service p { font-size: 0.88rem; }
+
+.service dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1rem;
+  margin: 0.9rem 0;
+}
+.service dl div { display: flex; flex-direction: column; gap: 0.1rem; }
+.service dt { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.service dd { margin: 0; font-size: 0.85rem; }
+
+.deps { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.5rem; }
+.deps__label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.dim { color: var(--muted); }

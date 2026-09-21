@@ -1,0 +1,247 @@
+<a class="back" routerLink="/incidents">&larr; All incidents</a>
+
+@if (error()) {
+  <div class="notice notice--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else if (incident(); as inc) {
+  <header class="page-head">
+    <h1><span class="mono dim">#{{ inc.incidentNumber }}</span> {{ inc.title }}</h1>
+    <div class="head-badges">
+      <app-badge [value]="inc.status" />
+      <app-badge [value]="inc.severity" />
+      <app-badge [value]="inc.rcaStatus" />
+      <span class="muted small">opened {{ inc.openedAt | ago }} · updated {{ inc.updatedAt | ago }}</span>
+    </div>
+  </header>
+
+  <section class="facts">
+    <div><span class="facts__label">Primary service</span><span class="mono">{{ inc.primaryService }}</span></div>
+    <div>
+      <span class="facts__label">Affected services</span>
+      <span class="mono">{{ inc.affectedServices.join(', ') }}</span>
+    </div>
+    <div><span class="facts__label">Correlated alerts</span><span class="mono">{{ inc.alertCount }}</span></div>
+  </section>
+
+  <!-- AI investigation -->
+  <section class="card">
+    <h2>
+      AI root cause analysis
+      @if (analysis(); as rcaBody) {
+        <span class="pill">{{ rcaBody.provider }}@if (rcaBody.model) { · {{ rcaBody.model }} }</span>
+      }
+    </h2>
+
+    @if (awaitingRca()) {
+      <div class="pending">
+        <span class="spinner"></span>
+        <div>
+          <strong>Investigation in progress.</strong>
+          <p class="muted small">
+            Started automatically when the incident was raised. This page updates itself; no action is needed.
+          </p>
+        </div>
+      </div>
+    } @else if (rca()?.rcaStatus === 'FAILED') {
+      <div class="notice notice--error">
+        Investigation failed.
+        @if (lastAttempt()?.failureReason) {
+          <code class="block">{{ lastAttempt()?.failureReason }}</code>
+        }
+      </div>
+    } @else if (analysis(); as rcaBody) {
+      @if (rca()?.rcaStatus === 'STALE') {
+        <div class="notice notice--warn">
+          New alerts arrived after this analysis was produced. A fresh investigation is queued.
+        </div>
+      }
+
+      <div class="confidence">
+        <div class="confidence__bar"><span [style.width.%]="confidencePercent()"></span></div>
+        <span class="mono">{{ confidencePercent() }}% confidence</span>
+        @if (lastAttempt(); as attempt) {
+          <span class="muted small">· generated in {{ attempt.durationMs | duration }}</span>
+        }
+      </div>
+
+      <h3>Summary</h3>
+      <p>{{ rcaBody.summary }}</p>
+
+      <h3>Probable root cause</h3>
+      <p class="root-cause">{{ rcaBody.probableRootCause }}</p>
+
+      @if (rcaBody.evidence.length) {
+        <h3>Evidence</h3>
+        <ul class="bullets">
+          @for (item of rcaBody.evidence; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+
+      @if (rcaBody.suspectedDeployment; as deployment) {
+        <h3>Suspected deployment</h3>
+        <div class="panel">
+          <div class="panel__head">
+            <span class="mono">{{ deployment.service }} {{ deployment.version }}</span>
+            <span class="mono dim">{{ deployment.commitSha }}</span>
+            <span class="muted small">{{ deployment.minutesBeforeIncident }} min before the incident</span>
+          </div>
+          <p class="muted">{{ deployment.why }}</p>
+        </div>
+      }
+
+      @if (rcaBody.relevantPullRequests.length) {
+        <h3>Relevant pull requests</h3>
+        @for (pr of rcaBody.relevantPullRequests; track pr.number) {
+          <div class="panel">
+            <div class="panel__head">
+              <span class="mono">#{{ pr.number }}</span>
+              <strong>{{ pr.title }}</strong>
+            </div>
+            <p class="muted">{{ pr.why }}</p>
+          </div>
+        }
+      }
+
+      @if (rcaBody.relevantCode.length) {
+        <h3>Relevant code</h3>
+        @for (code of rcaBody.relevantCode; track $index) {
+          <div class="panel">
+            <div class="panel__head">
+              <span class="mono small">{{ code.filePath }}</span>
+              <span class="muted small">lines {{ code.startLine }}–{{ code.endLine }}</span>
+            </div>
+            <p class="muted">{{ code.why }}</p>
+          </div>
+        }
+      }
+
+      @if (rcaBody.recommendedActions.length) {
+        <h3>Recommended actions</h3>
+        <ol class="bullets">
+          @for (action of rcaBody.recommendedActions; track $index) {
+            <li>{{ action }}</li>
+          }
+        </ol>
+      }
+
+      <h3>Uncertainties</h3>
+      @if (rcaBody.uncertainties.length) {
+        <ul class="bullets bullets--warn">
+          @for (item of rcaBody.uncertainties; track $index) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">
+          None stated. An analysis that claims no uncertainty over partial evidence deserves scepticism.
+        </p>
+      }
+    } @else {
+      <p class="muted">No analysis has been produced for this incident.</p>
+    }
+  </section>
+
+  <div class="split">
+    <!-- Alerts -->
+    <section class="card">
+      <h2>Alerts</h2>
+      @if (detail()!.alerts.length === 0) {
+        <p class="muted">No alerts attached.</p>
+      } @else {
+        <ul class="list">
+          @for (alert of detail()!.alerts; track alert.alertId) {
+            <li class="list__row list__row--static">
+              <app-badge [value]="alert.severity" />
+              <span class="list__title">{{ alert.alertType }}</span>
+              <span class="mono small">{{ alert.service }}</span>
+              <span class="mono small">{{ alert.metricValue | metricValue: alert.alertType }}</span>
+              <span class="muted small">{{ alert.occurredAt | clock }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- Timeline -->
+    <section class="card">
+      <h2>Timeline</h2>
+      @if (detail()!.timeline.length === 0) {
+        <p class="muted">No timeline entries.</p>
+      } @else {
+        <ol class="timeline">
+          @for (entry of detail()!.timeline; track $index) {
+            <li>
+              <span class="timeline__time mono small">{{ entry.occurredAt | clock }}</span>
+              <span class="timeline__body">
+                <strong>{{ entry.entryType }}</strong>
+                <span class="muted">{{ entry.summary }}</span>
+              </span>
+            </li>
+          }
+        </ol>
+      }
+    </section>
+  </div>
+
+  <!-- Telemetry -->
+  @if (telemetry().length) {
+    <section class="card">
+      <h2>Telemetry <span class="pill">the window the investigation examined</span></h2>
+      <table class="table table--compact">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Type</th>
+            <th>Samples</th>
+            <th>Errors</th>
+            <th>Error rate</th>
+            <th>Avg</th>
+            <th>p95</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (group of telemetry(); track $index) {
+            <tr>
+              <td class="mono small">{{ group.service }}</td>
+              <td class="mono small">{{ group.eventType }}</td>
+              <td class="mono">{{ group.sampleCount }}</td>
+              <td class="mono">{{ group.errorCount }}</td>
+              <td class="mono" [class.bad]="group.errorRate > 0.1">{{ (group.errorRate * 100).toFixed(1) }}%</td>
+              <td class="mono">{{ group.avgLatencyMs.toFixed(0) }}ms</td>
+              <td class="mono">{{ group.p95LatencyMs.toFixed(0) }}ms</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  <!-- What the investigation was given -->
+  @if (evidence(); as summary) {
+    <section class="card">
+      <h2>Evidence package</h2>
+      <div class="counts">
+        <span><strong>{{ summary.alerts }}</strong> alerts</span>
+        <span><strong>{{ summary.telemetryGroups }}</strong> telemetry groups</span>
+        <span><strong>{{ summary.deployments }}</strong> deployments</span>
+        <span><strong>{{ summary.pullRequests }}</strong> pull requests</span>
+        <span><strong>{{ summary.codeSnippets }}</strong> code snippets</span>
+        <span><strong>{{ summary.runbooks }}</strong> runbooks</span>
+      </div>
+
+      @if (summary.missingEvidence.length) {
+        <h3>Known gaps</h3>
+        <ul class="bullets bullets--warn">
+          @for (gap of summary.missingEvidence; track $index) {
+            <li>{{ gap }}</li>
+          }
+        </ul>
+      }
+    </section>
+  }
+}

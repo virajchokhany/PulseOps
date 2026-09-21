@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+# Shell scripts are mounted into Linux containers and must keep LF endings,
+# otherwise the container fails with "no such file or directory".
+*.sh text eol=lf
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.ico binary

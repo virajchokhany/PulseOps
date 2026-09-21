@@ -1,0 +1,71 @@
+<header class="page-head">
+  <h1>Dashboard</h1>
+  <p class="muted">Live reliability posture across the ShopFlow estate.</p>
+</header>
+
+@if (error()) {
+  <div class="notice notice--error">{{ error() }}</div>
+}
+
+<section class="stats">
+  <div class="stat">
+    <span class="stat__value">{{ openIncidents().length }}</span>
+    <span class="stat__label">Open incidents</span>
+  </div>
+  <div class="stat stat--critical">
+    <span class="stat__value">{{ criticalCount() }}</span>
+    <span class="stat__label">Critical</span>
+  </div>
+  <div class="stat">
+    <span class="stat__value">{{ investigating() }}</span>
+    <span class="stat__label">AI investigating</span>
+  </div>
+  <div class="stat">
+    <span class="stat__value">{{ services().length }}</span>
+    <span class="stat__label">Services</span>
+  </div>
+</section>
+
+<div class="split">
+  <section class="card">
+    <h2>Recent incidents</h2>
+    @if (loading()) {
+      <p class="muted">Loading…</p>
+    } @else if (recentIncidents().length === 0) {
+      <p class="muted">No incidents recorded. The estate is healthy.</p>
+    } @else {
+      <ul class="list">
+        @for (incident of recentIncidents(); track incident.incidentKey) {
+          <li>
+            <a class="list__row" [routerLink]="['/incidents', incident.incidentKey]">
+              <span class="mono">#{{ incident.incidentNumber }}</span>
+              <span class="list__title">{{ incident.title }}</span>
+              <app-badge [value]="incident.severity" />
+              <app-badge [value]="incident.rcaStatus" />
+              <span class="muted small">{{ incident.updatedAt | ago }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card">
+    <h2>Recent alerts</h2>
+    @if (recentAlerts().length === 0) {
+      <p class="muted">No alerts fired.</p>
+    } @else {
+      <ul class="list">
+        @for (alert of recentAlerts(); track alert.alertId) {
+          <li class="list__row list__row--static">
+            <app-badge [value]="alert.severity" />
+            <span class="list__title">{{ alert.alertType }}</span>
+            <span class="mono small">{{ alert.service }}</span>
+            <span class="mono small">{{ alert.metricValue | metricValue: alert.alertType }}</span>
+            <span class="muted small">{{ alert.occurredAt | ago }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

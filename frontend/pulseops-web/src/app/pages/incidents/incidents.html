@@ -1,0 +1,51 @@
+<header class="page-head">
+  <h1>Incidents</h1>
+  <p class="muted">Alerts are correlated into incidents automatically; each one is investigated on arrival.</p>
+</header>
+
+<div class="filters">
+  @for (status of statuses; track status) {
+    <button type="button" [class.active]="selected() === status" (click)="select(status)">
+      {{ status === 'ALL' ? 'All' : status }}
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="notice notice--error">{{ error() }}</div>
+}
+
+@if (loading()) {
+  <p class="muted">Loading…</p>
+} @else if (incidents().length === 0) {
+  <p class="muted">No incidents match this filter.</p>
+} @else {
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Severity</th>
+        <th>Primary service</th>
+        <th>Alerts</th>
+        <th>AI RCA</th>
+        <th>Updated</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (incident of incidents(); track incident.incidentKey) {
+        <tr [routerLink]="['/incidents', incident.incidentKey]">
+          <td class="mono">{{ incident.incidentNumber }}</td>
+          <td>{{ incident.title }}</td>
+          <td><app-badge [value]="incident.status" /></td>
+          <td><app-badge [value]="incident.severity" /></td>
+          <td class="mono small">{{ incident.primaryService }}</td>
+          <td class="mono">{{ incident.alertCount }}</td>
+          <td><app-badge [value]="incident.rcaStatus" /></td>
+          <td class="muted small">{{ incident.updatedAt | ago }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

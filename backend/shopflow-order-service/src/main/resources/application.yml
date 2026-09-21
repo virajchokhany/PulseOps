@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: shopflow-order-service
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:pulseops}
+    username: ${POSTGRES_USER:pulseops}
+    password: ${POSTGRES_PASSWORD:pulseops}
+
+  flyway:
+    # pulseops-api is the single migrator. Start it first.
+    enabled: false
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${SERVER_PORT:8082}
+
+shopflow:
+  telemetry:
+    enabled: true
+    ingest-url: ${PULSEOPS_INGEST_BASE_URL:http://localhost:8081}
+    service: order-service
+    environment: ${ENVIRONMENT:prod}
+    deployment-version: ${DEPLOYMENT_VERSION:2.1.0}
+
+  order:
+    payment:
+      base-url: ${SHOPFLOW_PAYMENT_BASE_URL:http://localhost:8083}
+      connect-timeout: 2s
+      # Must exceed payment-service's own provider timeout, otherwise order-service
+      # gives up first and the real cause is hidden behind an order-service timeout.
+      read-timeout: 8s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    io.pulseops: DEBUG

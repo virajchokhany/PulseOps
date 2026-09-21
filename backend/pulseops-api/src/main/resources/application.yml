@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: pulseops-api
+
+  datasource:
+    # Host/port come from the environment so the identical jar runs against a local
+    # Docker Postgres, a Compose-internal Postgres, or Azure Database for PostgreSQL.
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:pulseops}
+    username: ${POSTGRES_USER:pulseops}
+    password: ${POSTGRES_PASSWORD:pulseops}
+    hikari:
+      maximum-pool-size: 10
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway owns the schema. Hibernate only validates that the code matches it.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # acks=all plus idempotence: no silent loss on leader failover, no duplicates from
+      # producer-side retries. This is producer idempotence only, not exactly-once end to end.
+      acks: all
+      retries: 5
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 30000
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      # Commit per record: at-least-once with the smallest possible replay window.
+      ack-mode: record
+      missing-topics-fatal: false
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    io.pulseops: DEBUG

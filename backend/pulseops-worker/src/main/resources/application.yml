@@ -1,0 +1,122 @@
+spring:
+  application:
+    name: pulseops-worker
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:pulseops}
+    username: ${POSTGRES_USER:pulseops}
+    password: ${POSTGRES_PASSWORD:pulseops}
+
+  flyway:
+    # pulseops-api is the single migrator. Start it first.
+    enabled: false
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 5
+      properties:
+        enable.idempotence: true
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 100
+    listener:
+      ack-mode: record
+      missing-topics-fatal: false
+      concurrency: 3
+
+server:
+  port: ${SERVER_PORT:8084}
+
+pulseops:
+  alerting:
+    enabled: true
+    window: 60s
+    # Ignore windows this small: one failure in a quiet period is not a 100% error rate.
+    min-samples: 8
+    # A firing rule stays quiet this long, so one degradation is one alert, not one per event.
+    cooldown: 90s
+    rules:
+      - name: PaymentHighErrorRate
+        service: payment-service
+        metric: ERROR_RATE
+        threshold: 0.20
+        severity: CRITICAL
+
+      - name: PaymentHighLatency
+        service: payment-service
+        metric: P95_LATENCY_MS
+        threshold: 2000
+        severity: MAJOR
+
+      - name: OrderFailureRate
+        service: order-service
+        metric: ERROR_RATE
+        threshold: 0.20
+        severity: MAJOR
+
+  correlation:
+    enabled: true
+    # Alerts arriving within this window of an incident's last alert join it instead of
+    # opening a new one.
+    window: 10m
+
+  source-control:
+    # Relative to the launch directory, so it only suits spring-boot:run from the module directory.
+    # A relative root that misses the checkout is detected and corrected at startup with a warning;
+    # set an absolute PULSEOPS_SOURCE_ROOT in containers, where the working directory differs again.
+    root-path: ${PULSEOPS_SOURCE_ROOT:../..}
+    max-files: 6
+    max-lines-per-snippet: 60
+    context-lines: 12
+
+  investigation:
+    enabled: true
+    # One degradation produces many incident updates; collapse the burst into one investigation.
+    debounce: 30s
+    telemetry-window-before: 15m
+    # The Incident Store may not have committed the incident yet when this worker sees the event.
+    max-state-load-attempts: 5
+    state-load-backoff: 2s
+    worker-threads: 2
+
+  llm:
+    # Empty key selects the deterministic rule-based provider; nothing leaves the machine.
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:gpt-4.1-mini}
+    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+    # bearer (OpenAI and Azure v1) or api-key (Azure REST style).
+    auth-header: ${LLM_AUTH_HEADER:bearer}
+    timeout: ${LLM_TIMEOUT_SECONDS:120}s
+    max-output-tokens: ${LLM_MAX_OUTPUT_TOKENS:4000}
+    # Reasoning models burn most of the budget on internal reasoning before emitting output.
+    reasoning-max-output-tokens: ${LLM_REASONING_MAX_OUTPUT_TOKENS:8000}
+    temperature: 0.1
+    # Unset means "infer from the model name". Set true/false to override.
+    reasoning-model: ${LLM_REASONING_MODEL:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    io.pulseops: DEBUG

@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: shopflow-payment-service
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:pulseops}
+    username: ${POSTGRES_USER:pulseops}
+    password: ${POSTGRES_PASSWORD:pulseops}
+
+  flyway:
+    # pulseops-api is the single migrator. Start it first.
+    enabled: false
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${SERVER_PORT:8083}
+
+shopflow:
+  telemetry:
+    enabled: true
+    ingest-url: ${PULSEOPS_INGEST_BASE_URL:http://localhost:8081}
+    service: payment-service
+    environment: ${ENVIRONMENT:prod}
+    deployment-version: ${DEPLOYMENT_VERSION:1.4.2}
+
+  payment:
+    provider:
+      # Baseline round trip to the external payment provider when it is healthy.
+      base-latency-ms: 120
+      # PR #482 raised this from 800ms to 5s to "reduce spurious failures".
+      # The side effect is that a slow provider now produces slow successes and
+      # slow failures instead of failing fast, which is the incident the demo creates.
+      read-timeout: 5s
+
+  failure-injection:
+    # Never on by default. The demo turns it on explicitly via POST /internal/failure.
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
+  level:
+    io.pulseops: DEBUG

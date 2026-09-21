@@ -1,0 +1,18 @@
+# Build context is the repository root, so keep it small and never ship secrets.
+.env
+.env.local
+*.pem
+*.key
+
+target/
+**/target/
+*.log
+
+node_modules/
+**/node_modules/
+frontend/**/dist/
+frontend/**/.angular/
+
+.git/
+.idea/
+.vscode/
