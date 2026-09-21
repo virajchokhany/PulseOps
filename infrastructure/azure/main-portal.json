@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.47.16.16243",
-      "templateHash": "17441392373600303977"
+      "templateHash": "5136410283881556855"
     }
   },
   "parameters": {
@@ -83,6 +83,29 @@
       "metadata": {
         "description": "Public IP allowed to reach the ShopFlow demo endpoints. Empty means open to the internet, which also exposes the failure-injection endpoint."
       }
+    },
+    "postgresVersion": {
+      "type": "string",
+      "defaultValue": "16",
+      "metadata": {
+        "description": "PostgreSQL major version. Lower this if the region reports the version as unavailable."
+      }
+    },
+    "postgresSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_B1ms",
+      "metadata": {
+        "description": "Compute size. Burstable is cheapest but is not offered in every region."
+      }
+    },
+    "postgresSkuTier": {
+      "type": "string",
+      "defaultValue": "Burstable",
+      "allowedValues": [
+        "Burstable",
+        "GeneralPurpose",
+        "MemoryOptimized"
+      ]
     }
   },
   "variables": {
@@ -139,11 +162,11 @@
       "name": "[variables('pgName')]",
       "location": "[parameters('location')]",
       "sku": {
-        "name": "Standard_B1ms",
-        "tier": "Burstable"
+        "name": "[parameters('postgresSkuName')]",
+        "tier": "[parameters('postgresSkuTier')]"
       },
       "properties": {
-        "version": "16",
+        "version": "[parameters('postgresVersion')]",
         "administratorLogin": "[parameters('postgresAdminUser')]",
         "administratorLoginPassword": "[parameters('postgresAdminPassword')]",
         "storage": {

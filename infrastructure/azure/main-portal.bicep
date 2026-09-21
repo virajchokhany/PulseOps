@@ -44,6 +44,15 @@ param llmAuthHeader string = 'bearer'
 @description('Public IP allowed to reach the ShopFlow demo endpoints. Empty means open to the internet, which also exposes the failure-injection endpoint.')
 param allowedClientIp string = ''
 
+@description('PostgreSQL major version. Lower this if the region reports the version as unavailable.')
+param postgresVersion string = '16'
+
+@description('Compute size. Burstable is cheapest but is not offered in every region.')
+param postgresSkuName string = 'Standard_B1ms'
+
+@allowed(['Burstable', 'GeneralPurpose', 'MemoryOptimized'])
+param postgresSkuTier string = 'Burstable'
+
 var dbName = 'pulseops'
 var pgName = toLower('${namePrefix}-pg-${uniqueString(resourceGroup().id)}')
 
@@ -82,11 +91,11 @@ resource pg 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: pgName
   location: location
   sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
+    name: postgresSkuName
+    tier: postgresSkuTier
   }
   properties: {
-    version: '16'
+    version: postgresVersion
     administratorLogin: postgresAdminUser
     administratorLoginPassword: postgresAdminPassword
     storage: { storageSizeGB: 32 }
